@@ -5,6 +5,7 @@ import { GENRES, PLACE_TYPES, MOODS } from "@/lib/constants";
 import { lightGenerate } from "@/lib/lightGenerate";
 import { getThemeStyle, resolveImageTheme } from "@/lib/imageTheme";
 import { createSpot } from "@/lib/store";
+import { describeAiError } from "@/lib/aiError";
 import type { FantasySpot, GeneratedSpot } from "@/lib/types";
 
 type LatLng = { lat: number; lng: number };
@@ -29,6 +30,7 @@ export default function CreateSpotPanel({
   const [saving, setSaving] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   const themeStyle = getThemeStyle(
     generated?.imageTheme ?? resolveImageTheme(genre, placeType),
@@ -39,6 +41,7 @@ export default function CreateSpotPanel({
     setGenerated(lightGenerate({ seedText: seedText.trim(), genre, placeType, mood }));
     setUsedAi(false);
     setImageUrl(null);
+    setAiNote(null);
   }
 
   async function handleGenerateImage() {
@@ -59,10 +62,9 @@ export default function CreateSpotPanel({
       const data = await res.json();
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
+        setAiNote(null);
       } else {
-        alert(
-          "画像生成にはOpenAIのAPIキー（OPENAI_API_KEY）が必要です。未設定のためグラデーション表示になります。",
-        );
+        setAiNote(`画像を生成できませんでした：${describeAiError(data.error)}`);
       }
     } finally {
       setImageLoading(false);
@@ -96,6 +98,11 @@ export default function CreateSpotPanel({
       });
       setUsedAi(Boolean(data.aiUsed));
       setImageUrl(null);
+      setAiNote(
+        data.aiUsed
+          ? null
+          : `AIは使われずテンプレートで生成しました：${describeAiError(data.error)}`,
+      );
     } finally {
       setAiLoading(false);
     }
@@ -242,6 +249,12 @@ export default function CreateSpotPanel({
           {aiLoading ? "深掘り中..." : "🪄 AIで深掘りする"}
         </button>
       </Section>
+
+      {aiNote && (
+        <p className="rounded-lg bg-amber-50 p-2 text-[11px] leading-relaxed text-amber-700">
+          ⚠️ {aiNote}
+        </p>
+      )}
 
       <button
         onClick={handleSave}

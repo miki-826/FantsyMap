@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getThemeStyle } from "@/lib/imageTheme";
-import { isOpenAIEnabled } from "@/lib/openai";
+import { isOpenAIEnabled, summarizeOpenAIError } from "@/lib/openai";
 
 type ImageBody = {
   title: string;
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   }
 
   if (!isOpenAIEnabled) {
-    return NextResponse.json({ imageUrl: null, aiUsed: false });
+    return NextResponse.json({ imageUrl: null, aiUsed: false, error: "no_api_key" });
   }
 
   try {
@@ -57,12 +57,17 @@ export async function POST(req: Request) {
     if (!res.ok) {
       const text = await res.text();
       console.error("OpenAI image error", res.status, text);
-      return NextResponse.json({ imageUrl: null, aiUsed: false });
+      return NextResponse.json({
+        imageUrl: null,
+        aiUsed: false,
+        error: summarizeOpenAIError(res.status, text),
+      });
     }
 
     const data = await res.json();
     const b64 = data?.data?.[0]?.b64_json;
-    if (!b64) return NextResponse.json({ imageUrl: null, aiUsed: false });
+    if (!b64)
+      return NextResponse.json({ imageUrl: null, aiUsed: false, error: "empty_response" });
 
     return NextResponse.json({
       imageUrl: `data:image/png;base64,${b64}`,
@@ -70,6 +75,10 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ imageUrl: null, aiUsed: false });
+    return NextResponse.json({
+      imageUrl: null,
+      aiUsed: false,
+      error: e instanceof Error ? e.message : "unknown_error",
+    });
   }
 }

@@ -13,9 +13,10 @@ type DeepenBody = {
   mood?: string;
 };
 
-function fallback(body: DeepenBody) {
+function fallback(body: DeepenBody, error?: string) {
   const theme = resolveImageTheme(body.genre, body.placeType);
   return {
+    error: error ?? null,
     title: `${body.seedText.slice(0, 12)}の場所`,
     catchCopy: "語り継がれるうちに、輪郭がはっきりしてきた空想。",
     story: `${body.seedText}。最初はただの噂だったが、訪れた人が少しずつその情景を語り継ぐうちに、ここには確かに“それ”があると囁かれるようになった。月のない夜ほど、その気配は濃くなるという。`,
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
   }
 
   if (!isOpenAIEnabled) {
-    return NextResponse.json(fallback(body));
+    return NextResponse.json(fallback(body, "no_api_key"));
   }
 
   try {
@@ -51,6 +52,8 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json(fallback(body));
+    return NextResponse.json(
+      fallback(body, e instanceof Error ? e.message : "unknown_error"),
+    );
   }
 }

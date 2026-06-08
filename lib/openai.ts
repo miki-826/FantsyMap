@@ -1,5 +1,19 @@
 export const isOpenAIEnabled = Boolean(process.env.OPENAI_API_KEY);
 
+export function summarizeOpenAIError(status: number, text: string): string {
+  try {
+    const j = JSON.parse(text);
+    return (
+      j?.error?.code ||
+      j?.error?.type ||
+      j?.error?.message ||
+      `HTTP ${status}`
+    );
+  } catch {
+    return `HTTP ${status}`;
+  }
+}
+
 export async function chatJSON(
   system: string,
   user: string,
@@ -23,7 +37,7 @@ export async function chatJSON(
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${text}`);
+    throw new Error(summarizeOpenAIError(res.status, text));
   }
 
   const data = await res.json();

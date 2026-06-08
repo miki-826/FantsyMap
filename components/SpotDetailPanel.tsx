@@ -9,6 +9,7 @@ import {
   fetchComments,
   updateSpotImage,
 } from "@/lib/store";
+import { describeAiError } from "@/lib/aiError";
 import type { FantasyComment, FantasySpot, ReactionType } from "@/lib/types";
 import SpotPhotoCard from "./SpotPhotoCard";
 import ThemeBadge from "./ThemeBadge";
@@ -89,9 +90,7 @@ export default function SpotDetailPanel({
         const updated = await updateSpotImage(spot.id, data.imageUrl);
         if (updated) onSpotUpdate(updated);
       } else {
-        alert(
-          "画像生成にはOpenAIのAPIキー（OPENAI_API_KEY）が必要です。未設定のためグラデーション表示になります。",
-        );
+        alert(`画像を生成できませんでした：${describeAiError(data.error)}`);
       }
     } finally {
       setImageLoading(false);
