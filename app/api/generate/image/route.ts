@@ -38,20 +38,26 @@ export async function POST(req: Request) {
 
   try {
     const model = process.env.OPENAI_IMAGE_MODEL ?? "dall-e-2";
-    const size = process.env.OPENAI_IMAGE_SIZE ?? "512x512";
+    const isGptImage = model.startsWith("gpt-image");
+    let size = process.env.OPENAI_IMAGE_SIZE ?? (isGptImage ? "1024x1024" : "512x512");
+    // gpt-image-1 は 256/512 サイズと response_format 引数を受け付けない
+    if (isGptImage && /^(256|512)x/.test(size)) size = "1024x1024";
+
+    const payload: Record<string, unknown> = {
+      model,
+      prompt: buildPrompt(body),
+      n: 1,
+      size,
+    };
+    if (!isGptImage) payload.response_format = "b64_json";
+
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify({
-        model,
-        prompt: buildPrompt(body),
-        n: 1,
-        size,
-        response_format: "b64_json",
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
