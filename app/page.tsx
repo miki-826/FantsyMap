@@ -7,6 +7,7 @@ import { isSupabaseEnabled } from "@/lib/supabaseClient";
 import type { FantasySpot } from "@/lib/types";
 import CreateSpotPanel from "@/components/CreateSpotPanel";
 import SpotDetailPanel from "@/components/SpotDetailPanel";
+import BgmPlayer from "@/components/BgmPlayer";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -26,6 +27,7 @@ export default function Home() {
   const [authorName, setAuthorName] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
+  const [wideMenuVisible, setWideMenuVisible] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("fantasy_author_name");
@@ -39,6 +41,18 @@ export default function Home() {
   useEffect(() => {
     if (authorName) window.localStorage.setItem("fantasy_author_name", authorName);
   }, [authorName]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setWideMenuVisible(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  // メニュー（左パネル／詳細パネル／モバイルの作成画面）が表示されている間はBGMを鳴らす
+  const menuActive =
+    wideMenuVisible || mobileCreateOpen || Boolean(selectedId);
 
   const selectedSpot = useMemo(
     () => spots.find((s) => s.id === selectedId) ?? null,
@@ -66,6 +80,7 @@ export default function Home() {
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <BgmPlayer active={menuActive} />
           <label className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1">
             <span className="text-xs text-slate-400">名前</span>
             <input

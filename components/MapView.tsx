@@ -18,11 +18,15 @@ function escapeHtml(s: string): string {
 function buildIcon(spot: FantasySpot, selected: boolean): L.DivIcon {
   const style = getThemeStyle(spot.image_theme);
   const lvLabel = LEVEL_LABELS[spot.level] ?? "噂";
+  const bg = spot.image_url
+    ? `center/cover no-repeat url('${spot.image_url}')`
+    : style.gradient;
+  const icon = spot.image_url ? "" : `<span>${style.icon}</span>`;
   const html = `
     <div class="fantasy-card ${selected ? "selected" : ""}">
-      <div class="fantasy-card__image" style="background:${style.gradient}">
+      <div class="fantasy-card__image" style="background:${bg}">
         <span class="fantasy-card__lv">Lv.${spot.level} ${lvLabel}</span>
-        <span>${style.icon}</span>
+        ${icon}
       </div>
       <div class="fantasy-card__body">
         <div class="fantasy-card__title">${escapeHtml(spot.title)}</div>

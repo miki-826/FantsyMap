@@ -27,6 +27,8 @@ export default function CreateSpotPanel({
   const [usedAi, setUsedAi] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
   const themeStyle = getThemeStyle(
     generated?.imageTheme ?? resolveImageTheme(genre, placeType),
@@ -36,6 +38,35 @@ export default function CreateSpotPanel({
     if (!seedText.trim()) return;
     setGenerated(lightGenerate({ seedText: seedText.trim(), genre, placeType, mood }));
     setUsedAi(false);
+    setImageUrl(null);
+  }
+
+  async function handleGenerateImage() {
+    if (!generated) return;
+    setImageLoading(true);
+    try {
+      const res = await fetch("/api/generate/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: generated.title,
+          story: generated.story,
+          imageTheme: generated.imageTheme,
+          genre,
+          placeType,
+        }),
+      });
+      const data = await res.json();
+      if (data.imageUrl) {
+        setImageUrl(data.imageUrl);
+      } else {
+        alert(
+          "画像生成にはOpenAIのAPIキー（OPENAI_API_KEY）が必要です。未設定のためグラデーション表示になります。",
+        );
+      }
+    } finally {
+      setImageLoading(false);
+    }
   }
 
   async function handleDeepen() {
@@ -64,6 +95,7 @@ export default function CreateSpotPanel({
         imageTheme: data.imageTheme,
       });
       setUsedAi(Boolean(data.aiUsed));
+      setImageUrl(null);
     } finally {
       setAiLoading(false);
     }
@@ -88,11 +120,13 @@ export default function CreateSpotPanel({
         mood,
         generation_type: usedAi ? "ai" : "template",
         author_name: authorName.trim() || "名無しの旅人",
+        image_url: imageUrl,
       });
       onCreated(spot);
       setSeedText("");
       setGenerated(null);
       setUsedAi(false);
+      setImageUrl(null);
     } finally {
       setSaving(false);
     }
@@ -154,12 +188,32 @@ export default function CreateSpotPanel({
 
       {generated && (
         <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <div
-            className="mb-2 flex h-20 items-center justify-center rounded-lg text-3xl"
-            style={{ background: themeStyle.gradient }}
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt={generated.title}
+              className="mb-2 h-24 w-full rounded-lg object-cover"
+            />
+          ) : (
+            <div
+              className="mb-2 flex h-20 items-center justify-center rounded-lg text-3xl"
+              style={{ background: themeStyle.gradient }}
+            >
+              {themeStyle.icon}
+            </div>
+          )}
+          <button
+            onClick={handleGenerateImage}
+            disabled={imageLoading}
+            className="mb-2 w-full rounded-lg border border-brand py-1.5 text-xs font-semibold text-brand transition hover:bg-brand/5 disabled:opacity-40"
           >
-            {themeStyle.icon}
-          </div>
+            {imageLoading
+              ? "画像を生成中..."
+              : imageUrl
+                ? "🎨 画像を生成し直す"
+                : "🎨 AIで画像を生成"}
+          </button>
           <p className="text-sm font-bold text-slate-800">{generated.title}</p>
           <p className="mt-0.5 text-xs text-brand-dark">{generated.catchCopy}</p>
           <p className="mt-1 text-xs leading-relaxed text-slate-600">

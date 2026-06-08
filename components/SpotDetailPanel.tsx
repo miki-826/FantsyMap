@@ -7,6 +7,7 @@ import {
   addReaction,
   applyLegend,
   fetchComments,
+  updateSpotImage,
 } from "@/lib/store";
 import type { FantasyComment, FantasySpot, ReactionType } from "@/lib/types";
 import SpotPhotoCard from "./SpotPhotoCard";
@@ -35,6 +36,7 @@ export default function SpotDetailPanel({
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [legendLoading, setLegendLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -66,6 +68,34 @@ export default function SpotDetailPanel({
   async function handleReaction(type: ReactionType) {
     const updated = await addReaction(spot.id, type);
     if (updated) onSpotUpdate(updated);
+  }
+
+  async function handleGenerateImage() {
+    setImageLoading(true);
+    try {
+      const res = await fetch("/api/generate/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: spot.title,
+          story: spot.story,
+          imageTheme: spot.image_theme,
+          genre: spot.genre,
+          placeType: spot.place_type,
+        }),
+      });
+      const data = await res.json();
+      if (data.imageUrl) {
+        const updated = await updateSpotImage(spot.id, data.imageUrl);
+        if (updated) onSpotUpdate(updated);
+      } else {
+        alert(
+          "画像生成にはOpenAIのAPIキー（OPENAI_API_KEY）が必要です。未設定のためグラデーション表示になります。",
+        );
+      }
+    } finally {
+      setImageLoading(false);
+    }
   }
 
   async function handleLegend() {
@@ -100,9 +130,17 @@ export default function SpotDetailPanel({
       <div className="relative">
         <SpotPhotoCard
           imageTheme={spot.image_theme}
+          imageUrl={spot.image_url}
           title={spot.title}
           level={spot.level}
         />
+        <button
+          onClick={handleGenerateImage}
+          disabled={imageLoading}
+          className="absolute bottom-2 right-2 rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-semibold text-brand shadow transition hover:bg-white disabled:opacity-50"
+        >
+          {imageLoading ? "生成中..." : spot.image_url ? "🎨 作り直す" : "🎨 画像を生成"}
+        </button>
         <button
           onClick={onClose}
           className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"

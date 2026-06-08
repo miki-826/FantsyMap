@@ -75,6 +75,7 @@ export type NewSpotInput = {
   mood: string | null;
   generation_type: "template" | "ai";
   author_name: string;
+  image_url?: string | null;
 };
 
 export async function createSpot(input: NewSpotInput): Promise<FantasySpot> {
@@ -241,6 +242,32 @@ export async function applyLegend(
   const updated = spots.map((s) => {
     if (s.id !== spotId) return s;
     updatedSpot = { ...s, ...patch };
+    return updatedSpot;
+  });
+  writeLocal(SPOTS_KEY, updated);
+  return updatedSpot;
+}
+
+export async function updateSpotImage(
+  spotId: string,
+  imageUrl: string,
+): Promise<FantasySpot | null> {
+  if (isSupabaseEnabled && supabase) {
+    const { data, error } = await supabase
+      .from("fantasy_spots")
+      .update({ image_url: imageUrl })
+      .eq("id", spotId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as FantasySpot;
+  }
+
+  const spots = ensureSeeded();
+  let updatedSpot: FantasySpot | null = null;
+  const updated = spots.map((s) => {
+    if (s.id !== spotId) return s;
+    updatedSpot = { ...s, image_url: imageUrl };
     return updatedSpot;
   });
   writeLocal(SPOTS_KEY, updated);
