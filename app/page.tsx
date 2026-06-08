@@ -8,6 +8,7 @@ import type { FantasySpot } from "@/lib/types";
 import CreateSpotPanel from "@/components/CreateSpotPanel";
 import SpotDetailPanel from "@/components/SpotDetailPanel";
 import BgmPlayer from "@/components/BgmPlayer";
+import OpeningVideo from "@/components/OpeningVideo";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -72,6 +73,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col">
+      <OpeningVideo />
       <header className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
         <div className="flex items-baseline gap-2">
           <span className="text-lg font-extrabold text-brand">空想MAP</span>
