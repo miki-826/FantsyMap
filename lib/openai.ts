@@ -3,12 +3,12 @@ export const isOpenAIEnabled = Boolean(process.env.OPENAI_API_KEY);
 export function summarizeOpenAIError(status: number, text: string): string {
   try {
     const j = JSON.parse(text);
-    return (
-      j?.error?.code ||
-      j?.error?.type ||
-      j?.error?.message ||
-      `HTTP ${status}`
-    );
+    const code = j?.error?.code || j?.error?.type || `HTTP ${status}`;
+    const param = j?.error?.param;
+    // どのパラメータが問題かが分かるよう付記する
+    if (param) return `${code} (${param})`;
+    if (j?.error?.message) return `${code}: ${j.error.message}`;
+    return code;
   } catch {
     return `HTTP ${status}`;
   }
